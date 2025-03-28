@@ -4,7 +4,9 @@ const kv = await Deno.openKv();
 
 async function processCommand(input: string) {
   const [command, ..._args] = input.match(/(?:[^\s"]+|"[^"]*")+/g) || [];
-  const args = _args.map(arg => arg.startsWith('"') && arg.endsWith('"') ? arg.slice(1, -1) : arg);
+  const args = _args.map((arg) =>
+    arg.startsWith('"') && arg.endsWith('"') ? arg.slice(1, -1) : arg
+  );
 
   switch (command) {
     case "clear": {
@@ -63,7 +65,9 @@ async function processCommand(input: string) {
                 }
               }
             } else {
-              console.error("Invalid input format. Expected an array of entries.");
+              console.error(
+                "Invalid input format. Expected an array of entries.",
+              );
             }
           }
         } catch (error) {
