@@ -8,24 +8,22 @@ async function processCommand(input: string) {
 
   switch (command) {
     case "list": {
-      const prefix = args.slice(0); // 配列としてprefixを受け取る
-      console.log(`Listing items with prefix: ${prefix.join(", ") || "none"}`);
-      for await (const entry of kv.list({ prefix })) {
+      console.log(`Listing items with prefix: ${args.join(", ") || "none"}`);
+      for await (const entry of kv.list({ prefix: args })) {
         console.log(entry.key, entry.value);
       }
       break;
     }
     case "add": {
-      const key = args.slice(0, -1); // 配列としてキーを受け取る
-      const rawValue = args[args.length - 1]; // 最後の引数をJSONとして扱う
-      if (key.length === 0 || !rawValue) {
+      const rawValue = args.pop();
+      if (args.length === 0 || !rawValue) {
         console.error("Usage: add <key1> <key2> ... <JSON>");
         break;
       }
       try {
         const value = JSON.parse(rawValue); // JSONをパース
-        await kv.set(key, value);
-        console.log(`Added: ${key.join(", ")} ->`, value);
+        await kv.set(args, value);
+        console.log(`Added: ${args.join(", ")} ->`, value);
       } catch (_e) {
         console.error(
           "Invalid JSON format. Please provide a valid JSON string.",
@@ -34,29 +32,27 @@ async function processCommand(input: string) {
       break;
     }
     case "get": {
-      const getKey = args.slice(0); // 配列キーを処理
-      if (getKey.length === 0) {
+      if (args.length === 0) {
         console.error("Usage: get <key1> <key2> ...");
         break;
       }
 
-      const result = await kv.get(getKey);
+      const result = await kv.get(args);
       if (result) {
-        console.log(`Value for key ${getKey.join(", ")}:`, result.value);
+        console.log(`Value for key ${args.join(", ")}:`, result.value);
       } else {
-        console.log(`Key not found: ${getKey.join(", ")}`);
+        console.log(`Key not found: ${args.join(", ")}`);
       }
       break;
     }
     case "delete": {
-      const delKey = args.slice(0); // 配列キーを処理
-      if (delKey.length === 0) {
+      if (args.length === 0) {
         console.error("Usage: delete <key1> <key2> ...");
         break;
       }
 
-      await kv.delete(delKey);
-      console.log(`Deleted: ${delKey.join(", ")}`);
+      await kv.delete(args);
+      console.log(`Deleted: ${args.join(", ")}`);
       break;
     }
     case "exit": {
