@@ -79,4 +79,9 @@ async function startRepl() {
   }
 }
 
-startRepl();
+//startRepl();
+if (Deno.args.length > 0) {
+  await processCommand(Deno.args.join(" "));
+} else {
+  startRepl();
+}
