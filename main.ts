@@ -7,6 +7,19 @@ async function processCommand(input: string) {
   const args = _args.map(arg => arg.startsWith('"') && arg.endsWith('"') ? arg.slice(1, -1) : arg);
 
   switch (command) {
+    case "clear": {
+      try {
+        console.log("Clearing all entries in the KV store...");
+        for await (const entry of kv.list({ prefix: args })) {
+          await kv.delete(entry.key);
+          console.log(`Deleted: ${entry.key}`);
+        }
+        console.log("KV store cleared.");
+      } catch (error) {
+        console.error("Failed to clear KV store:", error.message);
+      }
+      break;
+    }
     case "restore": {
       if (args.length > 0) {
         // ファイルからデータを読み込む
