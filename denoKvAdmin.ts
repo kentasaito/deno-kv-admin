@@ -2,25 +2,26 @@
 
 const kv = await Deno.openKv();
 
-async function main(args: string[]) {
-  const command = args[0];
+async function processCommand(input: string) {
+  const [command, ..._args] = input.match(/(?:[^\s"]+|"[^"]*")+/g) || [];
+  const args = _args.map(arg => arg.startsWith('"') && arg.endsWith('"') ? arg.slice(1, -1) : arg);
 
   switch (command) {
     case "list": {
-      console.log("Listing all items:");
-      for await (const entry of kv.list({ prefix: [] })) {
+      const prefix = args.slice(0); // 配列としてprefixを受け取る
+      console.log(`Listing items with prefix: ${prefix.join(", ") || "none"}`);
+      for await (const entry of kv.list({ prefix })) {
         console.log(entry.key, entry.value);
       }
       break;
     }
     case "add": {
-      const key = args.slice(1, -1); // 配列としてキーを受け取る
+      const key = args.slice(0, -1); // 配列としてキーを受け取る
       const rawValue = args[args.length - 1]; // 最後の引数をJSONとして扱う
       if (key.length === 0 || !rawValue) {
         console.error("Usage: add <key1> <key2> ... <JSON>");
         break;
       }
-
       try {
         const value = JSON.parse(rawValue); // JSONをパース
         await kv.set(key, value);
@@ -33,7 +34,7 @@ async function main(args: string[]) {
       break;
     }
     case "get": {
-      const getKey = args.slice(1); // 配列キーを処理
+      const getKey = args.slice(0); // 配列キーを処理
       if (getKey.length === 0) {
         console.error("Usage: get <key1> <key2> ...");
         break;
@@ -48,7 +49,7 @@ async function main(args: string[]) {
       break;
     }
     case "delete": {
-      const delKey = args.slice(1); // 配列キーを処理
+      const delKey = args.slice(0); // 配列キーを処理
       if (delKey.length === 0) {
         console.error("Usage: delete <key1> <key2> ...");
         break;
@@ -58,9 +59,24 @@ async function main(args: string[]) {
       console.log(`Deleted: ${delKey.join(", ")}`);
       break;
     }
+    case "exit": {
+      console.log("Exiting REPL. Goodbye!");
+      Deno.exit(0);
+      break;
+    }
     default:
       console.log("Available commands: list, add, get, delete");
   }
 }
 
-main(Deno.args);
+async function startRepl() {
+  console.log("Welcome to denoKvAdmin REPL! Type 'exit' to quit.");
+  while (true) {
+    const input = prompt(">");
+    if (input) {
+      await processCommand(input);
+    }
+  }
+}
+
+startRepl();
