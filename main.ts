@@ -7,6 +7,71 @@ async function processCommand(input: string) {
   const args = _args.map(arg => arg.startsWith('"') && arg.endsWith('"') ? arg.slice(1, -1) : arg);
 
   switch (command) {
+    case "restore": {
+      if (args.length > 0) {
+        // ファイルからデータを読み込む
+        const filePath = args[0];
+        try {
+          const fileData = await Deno.readTextFile(filePath);
+          const entries = JSON.parse(fileData);
+
+          if (Array.isArray(entries)) {
+            for (const entry of entries) {
+              if (entry.key && entry.value) {
+                await kv.set(entry.key, entry.value);
+                console.log(`Restored: ${entry.key} ->`, entry.value);
+              } else {
+                console.error("Invalid entry format:", entry);
+              }
+            }
+          } else {
+            console.error("Invalid file format. Expected an array of entries.");
+          }
+        } catch (error) {
+          console.error("Failed to restore from file:", error.message);
+        }
+      } else {
+        // 標準入力からデータを受け取る
+        try {
+          console.log("Awaiting JSON data via stdin...");
+          const decoder = new TextDecoder();
+          const stdin = await Deno.stdin.readable.getReader().read();
+          if (stdin.value) {
+            const inputData = decoder.decode(stdin.value);
+            const entries = JSON.parse(inputData);
+
+            if (Array.isArray(entries)) {
+              for (const entry of entries) {
+                if (entry.key && entry.value) {
+                  await kv.set(entry.key, entry.value);
+                  console.log(`Restored: ${entry.key} ->`, entry.value);
+                } else {
+                  console.error("Invalid entry format:", entry);
+                }
+              }
+            } else {
+              console.error("Invalid input format. Expected an array of entries.");
+            }
+          }
+        } catch (error) {
+          console.error("Failed to restore from stdin:", error.message);
+        }
+      }
+      break;
+    }
+
+    case "dump": {
+      try {
+        const allEntries = [];
+        for await (const entry of kv.list({ prefix: args })) {
+          allEntries.push({ key: entry.key, value: entry.value });
+        }
+        console.log(JSON.stringify(allEntries, null, 2));
+      } catch (error) {
+        console.error("Failed to dump KV contents:", error);
+      }
+      break;
+    }
     case "list": {
       console.log(`Listing items with prefix: ${args.join(", ") || "none"}`);
       for await (const entry of kv.list({ prefix: args })) {
@@ -75,7 +140,6 @@ async function startRepl() {
   }
 }
 
-//startRepl();
 if (Deno.args.length > 0) {
   await processCommand(Deno.args.join(" "));
 } else {
